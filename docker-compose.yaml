@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  smoke_simulator:
+    image: ubuntu:latest
+    container_name: smoke_detector_simulator
+    environment:
+      BROKER_IP: "13.218.146.50"
+      TOPIC: "home/alerts/fire/smoke"
+      INTERVAL: "10"
+    command: >
+      /bin/bash -c "
+        apt-get update &&
+        apt-get install -y mosquitto-clients &&
+        apt-get clean;
+
+        echo Starting MQTT smoke simulation client \(Broker: $$BROKER_IP, Topic: $$TOPIC\);
+
+        while true; do
+
+          # Generate a random smoke level from 0–100
+          SMOKE_LEVEL=$$(( RANDOM % 101 ));
+
+          # Determine meaning
+          if [ $$SMOKE_LEVEL -eq 0 ]; then
+            MEANING=\"None\";
+          elif [ $$SMOKE_LEVEL -le 30 ]; then
+            MEANING=\"Low\";
+          elif [ $$SMOKE_LEVEL -le 70 ]; then
+            MEANING=\"Moderate\";
+          else
+            MEANING=\"High\";
+          fi;
+
+          MESSAGE=\"Smoke Level: $$SMOKE_LEVEL% (Meaning: $$MEANING)\";
+
+          echo Publishing message: $$MESSAGE;
+
+          mosquitto_pub -d -h $$BROKER_IP -t $$TOPIC -m \"$$MESSAGE\";
+
+          if [ $$? -eq 0 ]; then
+            echo Successfully published message.;
+          else
+            echo ERROR: Failed to publish message.;
+          fi;
+
+          sleep $$INTERVAL;
+        done
+      "
+    restart: unless-stopped
