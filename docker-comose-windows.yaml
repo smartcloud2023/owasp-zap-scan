@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  garage_simulator_ubuntu:
+    image: ubuntu:latest
+    container_name: windows_status_simulator
+    environment:
+      BROKER_HOST: "13.218.146.50"
+      TOPIC: "home/alerts/window/status"
+      INTERVAL: "10"
+    command: >
+      /bin/sh -c "
+        apt-get update &&
+        apt-get install -y mosquitto-clients &&
+        apt-get clean;
+
+        echo Starting simulation client connecting to: $$BROKER_HOST;
+
+        while true; do
+          MESSAGE=\"The windows is closed at this time: $$(date +%Y-%m-%d\ %H:%M:%S)\";
+          echo Publishing message: $$MESSAGE to topic $$TOPIC;
+          mosquitto_pub -h $$BROKER_HOST -t $$TOPIC -m \"$$MESSAGE\";
+          sleep $$INTERVAL;
+        done
+      "
+    restart: unless-stopped
